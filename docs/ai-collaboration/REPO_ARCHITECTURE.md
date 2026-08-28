@@ -1,5 +1,7 @@
 # 仓库文档架构
 
+本文件只解释文档信息架构；所有规则以根目录 `AGENTS.md` 为唯一权威，冲突时以 `AGENTS.md` 为准。
+
 ## 推荐结构
 
 ```text
@@ -19,9 +21,9 @@ project/
 │       ├── CHATGPT_START_PROMPT.md
 │       └── CODEX_START_PROMPT.md
 ├── tasks/
-│   ├── 001-example.md
-│   ├── 002-example.md
-│   └── TASK.template.md
+│   ├── 001-example-health-check.md
+│   ├── TASK.template.md
+│   └── archive/
 ├── src/
 ├── tests/
 └── ...
@@ -132,7 +134,7 @@ AGENTS ──→ 约束所有读取、执行、验证和汇报方式
 
 ## 文档状态约定
 
-推荐使用以下状态：
+Task 的完整状态机以 `AGENTS.md` 第 9 节为准。长期文档推荐使用以下状态：
 
 - `Draft`：正在形成，不能默认当作执行要求
 - `Active`：当前有效
@@ -153,35 +155,18 @@ Owner: [人或团队]
 
 ## Decision ID 与 Task ID
 
-推荐简单、稳定、易搜索的编号：
+Task 的编号、归档和状态机规则以 `AGENTS.md` 第 9 节为准。Decision 推荐简单、稳定、易搜索的编号：
 
 ```text
 DEC-001-use-postgresql
 DEC-002-desktop-runtime
-
-tasks/001-initialize-repository.md
-tasks/002-implement-login.md
 ```
 
-Decision 被替代时保留原 ID，并链接到替代它的新 ID。Task 不复用已使用编号。
+Decision 被替代时保留原 ID，并链接到替代它的新 ID。
 
 ## 分支与 PR 建议
 
-对需要 Review 的项目：
-
-```text
-task/002-implement-login
-```
-
-PR 描述引用：
-
-- Task 路径
-- 相关 Decision
-- Acceptance Criteria 结果
-- Verification evidence
-- 已知限制或 Follow-ups
-
-一个 PR 最好对应一个 Task。若实现发现需要改变产品或架构方向，先回到 Decision / Task 更新，而不是在 Diff 中隐式决定。
+分支命名、PR 与 Task 的对应关系和 merge 权限以 `AGENTS.md` 第 9 节为准。PR 描述建议额外引用相关 Decision 和已知限制，方便 Reviewer 恢复上下文。
 
 ## 最小化变体
 

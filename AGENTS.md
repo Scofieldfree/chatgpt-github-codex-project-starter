@@ -2,6 +2,8 @@
 
 本文件是本仓库中 ChatGPT、Codex / Work 和其他 AI Agent 的总协作规范。项目事实维护在 `docs/`，单次执行范围维护在 `tasks/`；不要用聊天记忆覆盖仓库中的当前事实。
 
+协作规则以本文件为唯一权威。`docs/ai-collaboration/` 中的文件只提供流程解释、示例和启动 Prompt，不得新增或修改规则；当其内容与本文件冲突时，以本文件为准并报告差异。
+
 ## 1. 双角色协作模型
 
 本仓库的 AI 协作明确分为两类：
@@ -26,7 +28,7 @@
 
 纯讨论、需求澄清、方案比较、决策记录、Roadmap 更新和 Task 编写，都留在 Chat + GitHub，不应仅因为需要修改 Markdown 文档就交给 Codex / Work。Chat 不应为了回答依赖当前实现的问题而猜测代码；一旦结论需要检查真实源码或运行结果，应转为明确的调查或执行 Task。
 
-Chat 不应在探索阶段修改代码，也不应把未确认内容写入长期文档。当前 Chat 环境没有仓库写入能力时，应给出精确的文档修改建议或说明需要具备 GitHub 写入能力的 Chat / 人工完成，不得声称已经写入，也不得把纯文档工作伪装成编码任务交给 Codex / Work。
+Chat 不应在探索阶段修改代码，也不应把未确认内容写入长期文档。Chat 默认已连接 GitHub 并具备仓库读写能力；每次会话首次写入仓库前，应先确认 GitHub 连接状态和写入权限仍然有效。仅当确认当前环境没有写入能力时，才给出精确的文档修改建议交由人工完成，不得声称已经写入，也不得把纯文档工作伪装成编码任务交给 Codex / Work。
 
 ### B. Codex / Work：执行与验证层
 
@@ -185,7 +187,48 @@ Chat 不为普通讨论或纯文档沉淀主动进入源码调查、运行命令
 
 条件不足时继续澄清，不要制造模糊 Task。一个 Task 尽量对应一个独立结果、分支或 PR。
 
-## 9. 实现与 Scope 控制
+## 9. Task 生命周期与分支约定
+
+### Task 状态机
+
+```text
+Draft → Ready → In Progress → In Review → Completed
+                    │             │
+                    └── Blocked ──┘   （阻塞解除后回到原状态）
+
+任意状态 → Cancelled / Superseded
+```
+
+- `Draft`：合同未定稿，不得开始实现。
+- `Ready`：满足 Task 生成门槛，可交给 Codex / Work。
+- `In Progress`：执行中。前提变化时先更新 Task 再继续。
+- `In Review`：实现完成，等待按 Acceptance Criteria Review。
+- `Completed`：Review 结果为 PASS，且 Completion Report 已填写。
+- `Blocked`：存在明确外部阻塞，需注明原因。
+- `Cancelled` / `Superseded`：不再执行；被替代时链接到新 Task。
+
+状态记录在 Task 文件顶部的 `Status` 字段，状态变更时同步更新该字段。
+
+### 编号规则
+
+- 使用三位递增编号：`tasks/001-short-name.md`。
+- 编号全仓库唯一，包含 `tasks/archive/` 中的历史 Task，永不复用。
+- 创建新 Task 前检查 `tasks/` 和 `tasks/archive/` 中的最大编号；并行创建发生冲突时，后合并的一方改号。
+
+### 归档规则
+
+- 状态进入 `Completed`、`Cancelled` 或 `Superseded` 后，在 Completion Report 填写完成的前提下，把 Task 文件移入 `tasks/archive/`，保留原文件名。
+- `tasks/` 根目录只保留未完成的 Task 和 `TASK.template.md`。
+- 执行记录保留在 Task 文件和对应 PR 中，不写入长期文档。
+
+### 分支与 PR 约定
+
+- 分支命名：`task/NNN-short-name`，与 Task 编号一致。
+- 一个 PR 对应一个 Task；PR 描述必须引用 Task 路径、逐条 Acceptance Criteria 结果和验证证据。
+- Codex / Work 可以创建分支和 PR，但不自行 merge；merge 由用户或 Reviewer 在 Review 结果为 PASS 后执行。
+- 实现中发现需要改变产品或架构方向时，先回到 Decision / Task 更新，不在 Diff 中隐式决定。
+
+## 10. 实现与 Scope 控制
 
 - 只实现当前 Task 的 Requirements 和 Acceptance Criteria。
 - 遵守 `docs/ARCHITECTURE.md` 和状态为 Active 的决定。
@@ -197,7 +240,7 @@ Chat 不为普通讨论或纯文档沉淀主动进入源码调查、运行命令
 - 修改前检查工作区已有变更；不要覆盖或回退用户的无关改动。
 - 不在源码、日志、测试夹具或文档中泄露密钥、Token 和个人数据。
 
-## 10. 项目概况与命令
+## 11. 项目概况与命令
 
 - 项目名称：`[PROJECT_NAME]`
 - 一句话目标：`[ONE_SENTENCE_GOAL]`
@@ -227,7 +270,7 @@ End-to-end:     [E2E_COMMAND]
 - 命名与格式化：`[NAMING_AND_FORMATTING_RULES]`
 - 项目特定禁止事项：`[PROJECT_PROHIBITIONS]`
 
-## 11. 验证要求
+## 12. 验证要求
 
 最低要求：
 
@@ -239,7 +282,7 @@ End-to-end:     [E2E_COMMAND]
 
 不能只凭编译成功、静态检查或执行者声明宣称完成。无法执行验证时，明确说明未执行什么、原因、风险和补验方式。
 
-## 12. 完成汇报
+## 13. 完成汇报
 
 最终报告应包含：
 
@@ -250,7 +293,7 @@ End-to-end:     [E2E_COMMAND]
 - **Remaining Issues**：风险、未解决问题和范围外 Follow-ups
 - **Documentation**：更新的长期文档及原因；没有则写 `No project-fact changes`
 
-## 13. 详细协作资料
+## 14. 详细协作资料
 
 - 协作入口：`docs/ai-collaboration/README.md`
 - 完整工作流：`docs/ai-collaboration/WORKFLOW.md`
