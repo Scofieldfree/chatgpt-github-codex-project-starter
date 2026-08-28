@@ -6,7 +6,7 @@
 
 本仓库的 AI 协作明确分为两类：
 
-> **Chat 负责讨论、决策沉淀和项目记录；Codex / Work 负责任务执行、测试和真实验证。**
+> **讨论和文档沉淀由 Chat + GitHub 完成；只有涉及真实代码调查、运行代码、编写测试或实现代码时，才交给 Codex / Work。**
 
 ### A. Chat：讨论与项目记录层
 
@@ -14,6 +14,7 @@
 
 - 与用户讨论产品、用户、需求、UX、技术路线、架构和优先级。
 - 区分 Exploration、Settled Decision 和 Task，避免把想法直接变成正式要求。
+- 读取 GitHub 中的项目文档，以仓库而不是聊天记忆作为长期上下文。
 - 在用户确认结论或明确要求整理时，把讨论结果更新到对应权威文档：
   - 产品、用户、范围和体验原则 → `docs/PRODUCT.md`
   - 当前技术栈、系统结构、模块、接口和数据流 → `docs/ARCHITECTURE.md`
@@ -23,13 +24,17 @@
 - 根据 Task、实际 Diff 和验证证据 Review Codex / Work 的执行结果。
 - 在 Review 后沉淀真正发生变化的项目事实，并推动下一轮讨论或 Task。
 
-Chat 默认不承担编码实现，不应在探索阶段修改代码，也不应把未确认内容写入长期文档。当前 Chat 环境没有仓库写入能力时，应给出精确的文档修改建议或交给 Codex / Work 落盘，不得声称已经写入。
+纯讨论、需求澄清、方案比较、决策记录、Roadmap 更新和 Task 编写，都留在 Chat + GitHub，不应仅因为需要修改 Markdown 文档就交给 Codex / Work。Chat 不应为了回答依赖当前实现的问题而猜测代码；一旦结论需要检查真实源码或运行结果，应转为明确的调查或执行 Task。
+
+Chat 不应在探索阶段修改代码，也不应把未确认内容写入长期文档。当前 Chat 环境没有仓库写入能力时，应给出精确的文档修改建议或说明需要具备 GitHub 写入能力的 Chat / 人工完成，不得声称已经写入，也不得把纯文档工作伪装成编码任务交给 Codex / Work。
 
 ### B. Codex / Work：执行与验证层
 
 Codex / Work 负责：
 
 - 读取本文件、指定 Task、相关项目文档以及真实代码和工作区状态。
+- 调查真实源码、配置、依赖、提交历史和当前实现行为，并用文件、Diff 或命令输出提供证据。
+- 运行安装、构建、Lint、类型检查、测试、脚本、应用或其他真实代码路径。
 - 严格按照 Task 的 Requirements、Non-goals 和 Acceptance Criteria 实现。
 - 编写或更新测试，运行静态检查，并验证真实用户行为。
 - 修复当前 Task 范围内的失败，保留范围外问题为 Follow-up。
@@ -38,7 +43,21 @@ Codex / Work 负责：
 
 Codex / Work 不得自行改变产品方向、把探索性想法当成要求、绕过 Task 扩大范围，或仅凭“代码已写”宣称完成。
 
-### C. 两类角色的交接
+### C. 职责路由规则
+
+| 请求或所需动作 | 默认负责方 | 操作规则 |
+| --- | --- | --- |
+| 产品、需求、UX、架构方向和优先级讨论 | Chat + GitHub | 保持 Exploration，直到用户确认稳定结论 |
+| 整理讨论、记录决定、更新长期文档或 Roadmap | Chat + GitHub | 写入唯一权威文档，不调用 Codex / Work 代写纯文档 |
+| 创建或完善 `tasks/*.md` | Chat + GitHub | 固定目标、范围、Non-goals、验收和验证方式 |
+| 回答依赖当前源码、配置、依赖或提交历史的事实问题 | Codex / Work | 创建调查 Task；读取真实仓库并返回可核对证据，不默认修改代码 |
+| 安装、构建、启动、执行脚本、复现问题或运行测试 | Codex / Work | 在真实环境运行并保留命令与输出证据 |
+| 编写测试、实现功能、修复缺陷或修改代码配置 | Codex / Work | 按 Task 实现、验证并汇报 Diff 与结果 |
+| 根据已有 Task、Diff 和验证证据做结果判断 | Chat / Reviewer | 先 Review 现有证据；需要重新检查或运行时，再交给 Codex / Work |
+
+判断标准不是“事情是否技术化”，而是“是否必须接触或执行真实代码”。只讨论技术路线、架构取舍或文档内容时仍由 Chat + GitHub 完成；只有需要代码事实、运行结果、测试或实现时，才进入 Codex / Work。
+
+### D. 两类角色的交接
 
 ```text
 Chat
@@ -47,9 +66,9 @@ Chat
 更新 PRODUCT / ARCHITECTURE / DECISIONS / ROADMAP
         ↓
 创建一个可验证的 Task
-        ↓
+        ↓ 仅当需要真实代码调查或执行
 Codex / Work
-实现、测试、真实验证
+调查、运行、测试、实现、真实验证
         ↓
 Diff + Acceptance Results + Verification Evidence
         ↓
@@ -64,14 +83,16 @@ Review、更新项目事实、进入下一轮
 
 ## 2. 开始任何工作前
 
-始终先阅读本文件，然后按任务类型读取：
+始终先阅读本文件，然后按角色与任务类型读取：
 
 1. `docs/PRODUCT.md`
 2. `docs/ARCHITECTURE.md`
 3. `docs/DECISIONS.md`
 4. `docs/ROADMAP.md`
-5. 当前相关的 `tasks/*.md`
-6. 与问题相关的源码、测试、配置和最近变更
+5. Chat 在准备 Task 或 Review 时，再读取当前相关的 `tasks/*.md`、已有 Diff 和验证证据
+6. Codex / Work 在真实代码调查或执行前，再读取当前 Task、相关源码、测试、配置、提交历史和工作区状态
+
+Chat 不为普通讨论或纯文档沉淀主动进入源码调查、运行命令或测试；如果缺少这些证据会影响结论，应先创建可验证的调查 Task，交给 Codex / Work 返回事实。
 
 需要理解完整协作方法时，再读取：
 
